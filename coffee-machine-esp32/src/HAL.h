@@ -2,16 +2,15 @@
 #define HAL_H
 
 #include "Config.h"
-#include <Adafruit_MCP23X17.h>
+#include <max6675.h>
 
 
 class HAL {
 public:
-  HAL(Adafruit_MCP23X17 &mcp);
-  bool initMCP();
+  HAL();
   void begin();
 
-  // Relay control (MCP23017)
+  // Relay control (GPIO)
   void relayOn(uint8_t relay);
   void relayOff(uint8_t relay);
   void allRelaysOff();
@@ -23,14 +22,15 @@ public:
   bool readLimitUpper();
   bool readLimitLower();
 
-  bool isReady() { return mcpReady; }
+  bool isReady() { return ready; }
 
 private:
-  Adafruit_MCP23X17 &mcp;
-  bool mcpReady;
+  bool ready;
 
-  // MAX6675 SPI read
-  float readMAX6675(uint8_t cs);
+  MAX6675 internalThermocouple;
+  MAX6675 externalThermocouple;
+
+  float readThermocouple(MAX6675 &sensor);
 
   // Debounce
   bool debounceRead(uint8_t pin);

@@ -1,12 +1,7 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-// I2C for MCP23017
-#define I2C_SDA 21
-#define I2C_SCL 22
-#define MCP23017_ADDR 0x20
-
-// SPI for MAX6675
+// MAX6675
 #define SPI_SCK 18
 #define SPI_MISO 19
 #define CS_INTERNAL 25
@@ -22,17 +17,17 @@
 #define LIMIT_UPPER 32
 #define LIMIT_LOWER 33
 
-// MCP23017 Relay Mapping (ACTIVE LOW)
-#define RELAY_TANK1_SUGAR     0
-#define RELAY_TANK2_COFFEE    1
-#define RELAY_TANK3_NESCAFE   2
-#define RELAY_PUMP_WATER      3
-#define RELAY_PUMP_MILK       4
-#define RELAY_HEATER_INTERNAL 5
-#define RELAY_HEATER_EXTERNAL 6
-#define RELAY_MIXER_ROTATE    7
-#define RELAY_MIXER_UP        8
-#define RELAY_MIXER_DOWN      9
+// Relay GPIO Mapping (ACTIVE LOW)
+#define RELAY_TANK1_SUGAR     2
+#define RELAY_TANK2_COFFEE    4
+#define RELAY_TANK3_NESCAFE   12
+#define RELAY_PUMP_WATER      13
+#define RELAY_PUMP_MILK       14
+#define RELAY_HEATER_INTERNAL 15
+#define RELAY_HEATER_EXTERNAL 23
+#define RELAY_MIXER_ROTATE    5
+#define RELAY_MIXER_UP        21
+#define RELAY_MIXER_DOWN      22
 
 #define RELAY_ACTIVE_LOW true
 

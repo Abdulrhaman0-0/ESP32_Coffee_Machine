@@ -1,43 +1,25 @@
 #include "HAL.h"
 #include "Logger.h"
-#include <SPI.h>
 
-HAL::HAL(Adafruit_MCP23X17 &mcpRef) : mcp(mcpRef), mcpReady(false) {
+HAL::HAL()
+    : ready(false), internalThermocouple(SPI_SCK, CS_INTERNAL, SPI_MISO),
+      externalThermocouple(SPI_SCK, CS_EXTERNAL, SPI_MISO) {
   debounceState[0] = debounceState[1] = HIGH;
   debounceCount[0] = debounceCount[1] = 0;
 }
 
-bool HAL::initMCP() {
-  if (!mcp.begin_I2C(MCP23017_ADDR)) {
-    return false;
-  }
-
-  // Configure all as outputs
-  for (uint8_t i = 0; i < 16; i++) {
-    mcp.pinMode(i, OUTPUT);
-  }
-
-  // Set all relays OFF (HIGH if active-low)
-  allRelaysOff();
-
-  // Verify
-  uint16_t check = mcp.readGPIOAB();
-  if (check != 0xFFFF) {
-    LOG_WARN("HAL", "MCP23017 verification warning");
-  }
-
-  mcpReady = true;
-  LOG_INFO("HAL", "MCP23017 initialized, all relays OFF");
-  return true;
-}
-
 void HAL::begin() {
-  // Init SPI for MAX6675
-  SPI.begin(SPI_SCK, SPI_MISO, -1, -1);
-  pinMode(CS_INTERNAL, OUTPUT);
-  pinMode(CS_EXTERNAL, OUTPUT);
-  digitalWrite(CS_INTERNAL, HIGH);
-  digitalWrite(CS_EXTERNAL, HIGH);
+  // Init relays
+  const uint8_t relayPins[] = {RELAY_TANK1_SUGAR,     RELAY_TANK2_COFFEE,
+                               RELAY_TANK3_NESCAFE,   RELAY_PUMP_WATER,
+                               RELAY_PUMP_MILK,       RELAY_HEATER_INTERNAL,
+                               RELAY_HEATER_EXTERNAL, RELAY_MIXER_ROTATE,
+                               RELAY_MIXER_UP,        RELAY_MIXER_DOWN};
+  for (uint8_t pin : relayPins) {
+    pinMode(pin, OUTPUT);
+  }
+  ready = true;
+  allRelaysOff();
 
   // Init ultrasonic
   pinMode(ULTRASONIC_TRIG, OUTPUT);
@@ -51,34 +33,41 @@ void HAL::begin() {
 }
 
 void HAL::relayOn(uint8_t relay) {
-  if (!mcpReady || relay > RELAY_MIXER_DOWN)
+  if (!ready)
     return;
 
   if (RELAY_ACTIVE_LOW) {
-    mcp.digitalWrite(relay, LOW);
+    digitalWrite(relay, LOW);
   } else {
-    mcp.digitalWrite(relay, HIGH);
+    digitalWrite(relay, HIGH);
   }
 }
 
 void HAL::relayOff(uint8_t relay) {
-  if (!mcpReady || relay > RELAY_MIXER_DOWN)
+  if (!ready)
     return;
 
   if (RELAY_ACTIVE_LOW) {
-    mcp.digitalWrite(relay, HIGH);
+    digitalWrite(relay, HIGH);
   } else {
-    mcp.digitalWrite(relay, LOW);
+    digitalWrite(relay, LOW);
   }
 }
 
 void HAL::allRelaysOff() {
-  if (!mcpReady)
+  if (!ready)
     return;
 
-  for (uint8_t i = 0; i <= RELAY_MIXER_DOWN; i++) {
-    relayOff(i);
-  }
+  relayOff(RELAY_TANK1_SUGAR);
+  relayOff(RELAY_TANK2_COFFEE);
+  relayOff(RELAY_TANK3_NESCAFE);
+  relayOff(RELAY_PUMP_WATER);
+  relayOff(RELAY_PUMP_MILK);
+  relayOff(RELAY_HEATER_INTERNAL);
+  relayOff(RELAY_HEATER_EXTERNAL);
+  relayOff(RELAY_MIXER_ROTATE);
+  relayOff(RELAY_MIXER_UP);
+  relayOff(RELAY_MIXER_DOWN);
 }
 
 bool HAL::cupPresent() {
@@ -96,31 +85,17 @@ bool HAL::cupPresent() {
   return (distance > 0 && distance < CUP_DETECT_THRESHOLD_CM);
 }
 
-float HAL::readMAX6675(uint8_t cs) {
-  digitalWrite(cs, LOW);
-  delayMicroseconds(1);
-
-  uint16_t data = 0;
-  data = SPI.transfer(0x00) << 8;
-  data |= SPI.transfer(0x00);
-
-  digitalWrite(cs, HIGH);
-
-  // Check fault bit (D2)
-  if (data & 0x0004) {
+float HAL::readThermocouple(MAX6675 &sensor) {
+  double temp = sensor.readCelsius();
+  if (isnan(temp)) {
     return NAN;
   }
-
-  // Extract temp (bits 3-14)
-  data >>= 3;
-  float temp = data * 0.25;
-
-  return temp;
+  return static_cast<float>(temp);
 }
 
-float HAL::readInternalTemp() { return readMAX6675(CS_INTERNAL); }
+float HAL::readInternalTemp() { return readThermocouple(internalThermocouple); }
 
-float HAL::readExternalTemp() { return readMAX6675(CS_EXTERNAL); }
+float HAL::readExternalTemp() { return readThermocouple(externalThermocouple); }
 
 bool HAL::debounceRead(uint8_t pin) {
   bool current = digitalRead(pin);
