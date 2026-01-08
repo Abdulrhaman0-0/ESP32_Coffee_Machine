@@ -1,0 +1,1473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Coffee Machine Control - Version C</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,"Segoe UI",sans-serif}
+    body{
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:linear-gradient(135deg,#020617,#0b1120);
+      color:#e5e7eb;
+    }
+    .shell{
+      position:relative;
+      width:min(1000px,100%);
+      height:min(620px,100vh);
+      padding:20px;
+      border-radius:24px;
+      background:radial-gradient(circle at top,#020617,#020617 40%,#000 100%);
+      box-shadow:0 26px 80px rgba(0,0,0,0.9);
+      overflow:hidden;
+    }
+    .shell::before{
+      content:"";
+      position:absolute;
+      width:220px;height:220px;
+      background:radial-gradient(circle,#22c55e55,#0000 70%);
+      top:-60px;left:-60px;
+      filter:blur(2px);
+    }
+    .shell::after{
+      content:"";
+      position:absolute;
+      width:240px;height:240px;
+      background:radial-gradient(circle,#0ea5e955,#0000 70%);
+      bottom:-80px;right:-80px;
+      filter:blur(2px);
+    }
+    .header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:10px 20px;
+      margin-bottom:10px;
+      border-radius:18px;
+      background:rgba(255,255,255,0.05);
+      backdrop-filter:blur(14px);
+      border:1px solid rgba(255,255,255,0.1);
+    }
+    .machine-title{
+      font-size:1.25rem;
+      font-weight:700;
+      letter-spacing:0.5px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .machine-title span{
+      font-size:1.1rem;
+      opacity:0.85;
+    }
+    .settings-btn{
+      background:rgba(255,255,255,0.08);
+      color:#e5e7eb;
+      border:none;
+      padding:9px 14px;
+      border-radius:999px;
+      cursor:pointer;
+      font-size:0.8rem;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      transition:0.2s;
+    }
+    .settings-btn:hover{background:rgba(255,255,255,0.14)}
+    .settings-btn:active{transform:scale(0.98)}
+    .content{
+      display:grid;
+      grid-template-columns:1fr 1.1fr;
+      gap:18px;
+      height:calc(100% - 86px);
+    }
+    .card{
+      background:rgba(255,255,255,0.05);
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:22px;
+      padding:18px;
+      backdrop-filter:blur(16px);
+      overflow:hidden;
+      position:relative;
+    }
+    .card h2{
+      font-size:0.95rem;
+      font-weight:700;
+      margin-bottom:14px;
+      text-transform:uppercase;
+      letter-spacing:1.2px;
+      opacity:0.8;
+    }
+    .drink-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+    }
+    .drink-item{
+      border-radius:18px;
+      padding:14px;
+      border:1px solid rgba(255,255,255,0.12);
+      background:rgba(0,0,0,0.24);
+      cursor:pointer;
+      transition:0.22s;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      min-height:98px;
+    }
+    .drink-item:hover{
+      transform:translateY(-2px);
+      border-color:rgba(34,197,94,0.55);
+      box-shadow:0 18px 45px rgba(34,197,94,0.12);
+    }
+    .drink-item.active{
+      border-color:rgba(34,197,94,0.75);
+      box-shadow:0 18px 55px rgba(34,197,94,0.15);
+      background:linear-gradient(160deg,rgba(34,197,94,0.22),rgba(0,0,0,0.28));
+    }
+    .drink-title{
+      font-size:0.95rem;
+      font-weight:700;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .drink-title .icon{
+      opacity:0.9;
+      font-size:1.05rem;
+    }
+    .drink-desc{
+      font-size:0.76rem;
+      opacity:0.72;
+      line-height:1.25;
+    }
+    .fields{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .field{
+      background:rgba(0,0,0,0.23);
+      border:1px solid rgba(255,255,255,0.1);
+      border-radius:18px;
+      padding:12px;
+    }
+    .field-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:10px;
+    }
+    .field-head span:first-child{
+      font-weight:700;
+      font-size:0.86rem;
+    }
+    .field-hint{
+      font-size:0.72rem;
+      opacity:0.6;
+    }
+    .chip-row,.sugar-row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .chip-btn{
+      padding:8px 14px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,0.12);
+      background:rgba(255,255,255,0.06);
+      color:#e5e7eb;
+      cursor:pointer;
+      font-size:0.78rem;
+      transition:0.2s;
+    }
+    .chip-btn:hover{
+      border-color:rgba(34,197,94,0.55);
+      background:rgba(34,197,94,0.12);
+    }
+    .chip-btn.active{
+      background:linear-gradient(135deg,#22c55e,#16a34a);
+      border-color:rgba(34,197,94,0.75);
+      color:#06210f;
+      font-weight:700;
+    }
+    .toggle-row{
+      display:flex;
+      gap:14px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .toggle{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 12px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,0.1);
+      background:rgba(255,255,255,0.05);
+    }
+    .toggle label{
+      font-size:0.82rem;
+      font-weight:600;
+      opacity:0.9;
+      cursor:pointer;
+      user-select:none;
+    }
+    .toggle input[type="checkbox"]{
+      width:18px;height:18px;
+      accent-color:#22c55e;
+      cursor:pointer;
+    }
+    .bottom{
+      margin-top:14px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:12px 14px;
+      border-radius:18px;
+      border:1px solid rgba(255,255,255,0.1);
+      background:rgba(0,0,0,0.22);
+    }
+    .bottom span{
+      font-size:0.82rem;
+      opacity:0.8;
+      line-height:1.2;
+      flex:1;
+    }
+    .btn-primary{
+      padding:8px 16px;
+      border-radius:999px;
+      border:none;
+      background:linear-gradient(135deg,#22c55e,#16a34a);
+      color:#06210f;
+      font-size:0.85rem;
+      font-weight:800;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      gap:6px;
+      box-shadow:0 14px 40px rgba(34,197,94,0.45);
+      transition:transform 0.16s ease,box-shadow 0.16s ease;
+      white-space:nowrap;
+    }
+    .btn-primary:hover{
+      transform:translateY(-1px);
+      box-shadow:0 18px 50px rgba(34,197,94,0.55);
+    }
+    .btn-primary:active{transform:translateY(0)}
+    .loader-overlay{
+      position:absolute;
+      inset:0;
+      background:rgba(2,6,23,0.82);
+      backdrop-filter:blur(18px);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:50;
+    }
+    .loader-overlay.active{display:flex}
+    .loader-card{
+      width:min(430px,92%);
+      background:rgba(0,0,0,0.45);
+      border:1px solid rgba(255,255,255,0.14);
+      border-radius:24px;
+      padding:22px;
+      text-align:center;
+      box-shadow:0 25px 80px rgba(0,0,0,0.65);
+    }
+    .spinner{
+      width:54px;height:54px;
+      border-radius:999px;
+      border:5px solid rgba(255,255,255,0.15);
+      border-top-color:#22c55e;
+      margin:0 auto 14px;
+      animation:spin 0.9s linear infinite;
+    }
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .loader-card h3{
+      font-size:1.05rem;
+      margin-bottom:6px;
+      font-weight:800;
+    }
+    .loader-card p{
+      font-size:0.82rem;
+      opacity:0.75;
+      line-height:1.25;
+    }
+    .settings-panel{
+      position:absolute;
+      inset:0;
+      background:rgba(2,6,23,0.85);
+      backdrop-filter:blur(18px);
+      display:none;
+      z-index:60;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+    }
+    .settings-panel.active{display:flex}
+    .settings-card{
+      width:min(760px,96%);
+      max-height:min(560px,96vh);
+      overflow:auto;
+      background:rgba(0,0,0,0.5);
+      border:1px solid rgba(255,255,255,0.14);
+      border-radius:26px;
+      padding:18px;
+      box-shadow:0 25px 90px rgba(0,0,0,0.7);
+    }
+    .settings-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:8px 8px 14px;
+      border-bottom:1px solid rgba(255,255,255,0.12);
+      margin-bottom:14px;
+    }
+    .settings-header h3{
+      font-size:1rem;
+      font-weight:800;
+      letter-spacing:0.6px;
+    }
+    .close-btn{
+      background:rgba(255,255,255,0.08);
+      color:#e5e7eb;
+      border:none;
+      padding:9px 12px;
+      border-radius:999px;
+      cursor:pointer;
+      transition:0.2s;
+    }
+    .close-btn:hover{background:rgba(255,255,255,0.14)}
+    .settings-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+      margin-top:14px;
+    }
+    .setting{
+      padding:12px;
+      border-radius:18px;
+      background:rgba(255,255,255,0.05);
+      border:1px solid rgba(255,255,255,0.1);
+    }
+    .setting label{
+      display:block;
+      font-size:0.78rem;
+      font-weight:700;
+      opacity:0.86;
+      margin-bottom:8px;
+    }
+    .setting small{
+      display:block;
+      margin-top:6px;
+      font-size:0.7rem;
+      opacity:0.6;
+      line-height:1.25;
+    }
+    .input-row{
+      display:flex;
+      gap:10px;
+      align-items:center;
+    }
+    input[type="number"]{
+      width:100%;
+      padding:9px 10px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.12);
+      background:rgba(0,0,0,0.28);
+      color:#e5e7eb;
+      font-size:0.86rem;
+      outline:none;
+    }
+    input[type="number"]:focus{
+      border-color:rgba(34,197,94,0.6);
+      box-shadow:0 0 0 4px rgba(34,197,94,0.13);
+    }
+    .stepper-btn{
+      padding:9px 12px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.12);
+      background:rgba(255,255,255,0.06);
+      color:#e5e7eb;
+      cursor:pointer;
+      transition:0.2s;
+      min-width:44px;
+    }
+    .stepper-btn:hover{
+      border-color:rgba(34,197,94,0.55);
+      background:rgba(34,197,94,0.12);
+    }
+    .audio-row{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      margin-top:10px;
+      flex-wrap:wrap;
+    }
+    .audio-row .icon{
+      font-size:1.1rem;
+      opacity:0.9;
+    }
+    input[type="range"]{
+      width:200px;
+      accent-color:#22c55e;
+      cursor:pointer;
+    }
+    .save-btn{
+      margin-top:14px;
+      width:100%;
+      border:none;
+      border-radius:18px;
+      padding:12px 14px;
+      font-size:0.9rem;
+      font-weight:900;
+      cursor:pointer;
+      color:#06210f;
+      background:linear-gradient(135deg,#22c55e,#16a34a);
+      box-shadow:0 18px 55px rgba(34,197,94,0.45);
+      transition:0.18s;
+    }
+    .save-btn:hover{transform:translateY(-1px);box-shadow:0 22px 65px rgba(34,197,94,0.55)}
+    .save-btn:active{transform:translateY(0)}
+    @media(max-width:880px){
+      .content{grid-template-columns:1fr}
+      .shell{height:auto}
+    }
+    @media(max-width:640px){
+      .settings-grid{grid-template-columns:1fr}
+      .drink-grid{grid-template-columns:1fr 1fr}
+    }
+
+    /* ---------------------------
+       API integration additions
+       --------------------------- */
+    .bottom-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+    .btn-danger{
+      padding:8px 16px;
+      border-radius:999px;
+      border:none;
+      background:linear-gradient(135deg,#ef4444,#b91c1c);
+      color:#f9fafb;
+      font-size:0.85rem;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      box-shadow:0 14px 40px rgba(185,28,28,0.55);
+      transition:transform 0.16s ease,box-shadow 0.16s ease;
+      white-space:nowrap;
+    }
+    .btn-danger:hover{transform:translateY(-1px);box-shadow:0 18px 50px rgba(185,28,28,0.65);}
+    .btn-primary:disabled,.btn-danger:disabled{opacity:0.55;cursor:not-allowed;transform:none;box-shadow:none;}
+    .status-bar{
+      margin-top:10px;
+      padding:10px 12px;
+      border-radius:14px;
+      background:#f8fafc;
+      border:1px solid #e5e7eb;
+      color:#0f172a;
+      font-size:0.82rem;
+      line-height:1.35;
+    }
+    .debug-panel{
+      margin-top:10px;
+      padding:10px 12px;
+      border-radius:14px;
+      background:#ffffff;
+      border:1px dashed #d1d5db;
+      color:#0f172a;
+    }
+    .debug-panel summary{cursor:pointer;font-weight:700;color:#0f172a;}
+    .debug-cols{display:grid;grid-template-columns:1fr;gap:10px;margin-top:10px;}
+    @media(min-width:900px){.debug-cols{grid-template-columns:1fr 1fr;}}
+    .debug-title{font-size:0.78rem;color:#334155;margin-bottom:6px;}
+    .debug-panel pre{
+      white-space:pre-wrap;
+      word-break:break-word;
+      background:#0b1220;
+      color:#e2e8f0;
+      padding:10px;
+      border-radius:12px;
+      font-size:0.75rem;
+      margin:0;
+      border:1px solid rgba(148,163,184,0.2);
+    }
+    .warn{
+      margin-top:10px;
+      color:#92400e;
+      background:#fffbeb;
+      border:1px solid rgba(245,158,11,0.25);
+      padding:8px 10px;
+      border-radius:12px;
+      font-size:0.8rem;
+    }
+  </style>
+</head>
+<body>
+
+<div class="shell">
+  <div class="header">
+    <div class="machine-title">
+      <span>☕</span> Coffee Machine Control - Version C
+    </div>
+    <button class="settings-btn" id="settingsBtn" type="button">
+      <span>⚙</span> Settings
+    </button>
+  </div>
+
+  <div class="content">
+    <div class="card">
+      <h2>Choose Drink</h2>
+      <div class="drink-grid" id="drinkRowC">
+        <div class="drink-item active" data-drink="Coffee">
+          <div class="drink-title">
+            <span>Coffee</span>
+            <span class="icon">☕</span>
+          </div>
+          <div class="drink-desc">Brew a regular coffee with your preferred sugar level.</div>
+        </div>
+
+        <div class="drink-item" data-drink="HotWater">
+          <div class="drink-title">
+            <span>Hot Water</span>
+            <span class="icon">💧</span>
+          </div>
+          <div class="drink-desc">Dispense hot liquid (water or milk-only) with sugar option.</div>
+        </div>
+
+        <div class="drink-item" data-drink="Nescafe">
+          <div class="drink-title">
+            <span>Nescafé</span>
+            <span class="icon">🥤</span>
+          </div>
+          <div class="drink-desc">Prepare instant coffee with adjustable milk ratio and sugar.</div>
+        </div>
+
+        <div class="drink-item" data-drink="Cleaning">
+          <div class="drink-title">
+            <span>Cleaning Cycle</span>
+            <span class="icon">🧼</span>
+          </div>
+          <div class="drink-desc">Flush the machine lines to keep it clean and ready.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Options</h2>
+
+      <div class="fields">
+        <div class="field" id="brewBaseFieldC" style="display:none;">
+          <div class="field-head">
+            <span>Brew Base</span>
+            <span class="field-hint">Coffee only</span>
+          </div>
+          <div class="chip-row" id="brewBaseRowC">
+            <button class="chip-btn active" data-value="Water" type="button">Water</button>
+            <button class="chip-btn" data-value="Milk" type="button">Milk</button>
+          </div>
+        </div>
+
+        <div class="field" id="sizeFieldC" style="display:none;">
+          <div class="field-head">
+            <span>Size</span>
+            <span class="field-hint">Single or Double</span>
+          </div>
+          <div class="chip-row" id="sizeRowC">
+            <button class="chip-btn active" data-value="Single" type="button">Single</button>
+            <button class="chip-btn" data-value="Double" type="button">Double</button>
+          </div>
+        </div>
+
+        <div class="field" id="sugarFieldC" style="display:none;">
+          <div class="field-head">
+            <span>Sugar</span>
+            <span class="field-hint">Select level</span>
+          </div>
+          <div class="sugar-row" id="sugarRowC">
+            <button class="chip-btn" data-value="Low" type="button">Low</button>
+            <button class="chip-btn active" data-value="Medium" type="button">Medium</button>
+            <button class="chip-btn" data-value="High" type="button">High</button>
+          </div>
+        </div>
+
+        <div class="field" id="hotLiquidFieldC" style="display:none;">
+          <div class="field-head">
+            <span>Hot Liquid</span>
+            <span class="field-hint">HotWater only (exclusive: water OR milk)</span>
+          </div>
+          <div class="sugar-row" id="hotLiquidRowC">
+            <button class="chip-btn active" data-value="water" type="button">Hot Water</button>
+            <button class="chip-btn" data-value="milk_medium" type="button">Hot Milk (Medium)</button>
+            <button class="chip-btn" data-value="milk_extra" type="button">Hot Milk (Extra)</button>
+          </div>
+        </div>
+
+        <div class="field" id="milkFieldC" style="display:none;">
+          <div class="field-head">
+            <span>Milk Ratio</span>
+            <span class="field-hint">Nescafe only (ratio mixing)</span>
+          </div>
+          <div class="sugar-row" id="milkRowC">
+            <button class="chip-btn active" data-value="none" type="button">No milk (100% water)</button>
+            <button class="chip-btn" data-value="medium" type="button">25% milk</button>
+            <button class="chip-btn" data-value="extra" type="button">50% milk</button>
+          </div>
+        </div>
+
+        <div class="field" id="cleaningFieldsC" style="display:none;">
+          <div class="field-head">
+            <span>Cleaning Options</span>
+            <span class="field-hint">Choose circuits</span>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle">
+              <input type="checkbox" id="cleanMilk">
+              <label for="cleanMilk">Clean Milk Line</label>
+            </div>
+            <div class="toggle">
+              <input type="checkbox" id="cleanWater">
+              <label for="cleanWater">Clean Water Line</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="bottom">
+          <span id="summaryC">Waiting... choose your drink and options above.</span>
+
+          <div class="bottom-actions">
+            <button class="btn-primary" id="startC" type="button"><span>Start Order</span><span>&#9654;</span></button>
+            <button class="btn-danger" id="stopC" type="button" disabled><span>Stop</span><span>&#9632;</span></button>
+          </div>
+        </div>
+
+        <div class="status-bar" id="statusLineC">State: IDLE | Cup: ? | Temp: -</div>
+
+        <div class="warn" id="audioWarnC" style="display:none;"></div>
+
+        <details class="debug-panel">
+          <summary>Advanced / Debug</summary>
+          <div class="debug-cols">
+            <div class="debug-col">
+              <div class="debug-title">Last /api/start payload</div>
+              <pre id="debugPayloadC">{}</pre>
+            </div>
+            <div class="debug-col">
+              <div class="debug-title">Last /api/status</div>
+              <pre id="debugStatusC">{}</pre>
+            </div>
+          </div>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <div class="loader-overlay" id="loaderC">
+    <div class="loader-card">
+      <div class="spinner"></div>
+      <h3 id="loaderTextC">Preparing your drink...</h3>
+      <p id="loaderSubC">Please wait while the machine completes the steps.</p>
+    </div>
+  </div>
+
+  <div class="settings-panel" id="settingsPanel">
+    <div class="settings-card">
+      <div class="settings-header">
+        <h3>Machine Settings</h3>
+        <button class="close-btn" id="closeSettings" type="button">✕</button>
+      </div>
+
+      <div class="settings-grid">
+        <div class="setting">
+          <label>Tank 1 Time (sec)</label>
+          <div class="input-row">
+            <button class="stepper-btn" type="button" onclick="decrementValue('tank1Time',1,0)">−</button>
+            <input type="number" id="tank1Time" min="0" max="30">
+            <button class="stepper-btn" type="button" onclick="incrementValue('tank1Time',1,30)">+</button>
+          </div>
+          <small>0–30 seconds</small>
+        </div>
+
+        <div class="setting">
+          <label>Tank 2 Time (sec)</label>
+          <div class="input-row">
+            <button class="stepper-btn" type="button" onclick="decrementValue('tank2Time',1,0)">−</button>
+            <input type="number" id="tank2Time" min="0" max="30">
+            <button class="stepper-btn" type="button" onclick="incrementValue('tank2Time',1,30)">+</button>
+          </div>
+          <small>0–30 seconds</small>
+        </div>
+
+        <div class="setting">
+          <label>Tank 3 Time (sec)</label>
+          <div class="input-row">
+            <button class="stepper-btn" type="button" onclick="decrementValue('tank3Time',1,0)">−</button>
+            <input type="number" id="tank3Time" min="0" max="30">
+            <button class="stepper-btn" type="button" onclick="incrementValue('tank3Time',1,30)">+</button>
+          </div>
+          <small>0–30 seconds</small>
+        </div>
+
+        <div class="setting">
+          <label>Water Pump Time (sec)</label>
+          <div class="input-row">
+            <button class="stepper-btn" type="button" onclick="decrementValue('waterPumpTime',1,0)">−</button>
+            <input type="number" id="waterPumpTime" min="0" max="60">
+            <button class="stepper-btn" type="button" onclick="incrementValue('waterPumpTime',1,60)">+</button>
+          </div>
+          <small>0–60 seconds</small>
+        </div>
+
+        <div class="setting">
+          <label>Milk Pump Time (sec)</label>
+          <div class="input-row">
+            <button class="stepper-btn" type="button" onclick="decrementValue('milkPumpTime',1,0)">−</button>
+            <input type="number" id="milkPumpTime" min="0" max="60">
+            <button class="stepper-btn" type="button" onclick="incrementValue('milkPumpTime',1,60)">+</button>
+          </div>
+          <small>0–60 seconds</small>
+        </div>
+
+        <div class="setting">
+          <label>Internal Heater Time (sec)</label>
+          <div class="input-row">
+            <button class="stepper-btn" type="button" onclick="decrementValue('intHeaterTime',5,10)">−</button>
+            <input type="number" id="intHeaterTime" min="10" max="120">
+            <button class="stepper-btn" type="button" onclick="incrementValue('intHeaterTime',5,120)">+</button>
+          </div>
+          <small>10–120 seconds</small>
+        </div>
+
+        <div class="setting">
+          <label>Internal Heater Temp (°C)</label>
+          <div class="input-row">
+            <button class="stepper-btn" type="button" onclick="decrementValue('intHeaterTemp',1,60)">−</button>
+            <input type="number" id="intHeaterTemp" min="60" max="100">
+            <button class="stepper-btn" type="button" onclick="incrementValue('intHeaterTemp',1,100)">+</button>
+          </div>
+          <small>60–100 °C</small>
+        </div>
+
+        <div class="setting">
+          <label>External Heater Time (sec)</label>
+          <div class="input-row">
+            <button class="stepper-btn" type="button" onclick="decrementValue('extHeaterTime',5,10)">−</button>
+            <input type="number" id="extHeaterTime" min="10" max="180">
+            <button class="stepper-btn" type="button" onclick="incrementValue('extHeaterTime',5,180)">+</button>
+          </div>
+          <small>10–180 seconds</small>
+        </div>
+
+        <div class="setting">
+          <label>External Heater Temp (°C)</label>
+          <div class="input-row">
+            <button class="stepper-btn" type="button" onclick="decrementValue('extHeaterTemp',1,60)">−</button>
+            <input type="number" id="extHeaterTemp" min="60" max="100">
+            <button class="stepper-btn" type="button" onclick="incrementValue('extHeaterTemp',1,100)">+</button>
+          </div>
+          <small>Accepted but ignored by firmware (no-op)</small>
+        </div>
+
+        <div class="setting">
+          <label>Mixer Time (sec)</label>
+          <div class="input-row">
+            <button class="stepper-btn" type="button" onclick="decrementValue('mixerTime',1,5)">−</button>
+            <input type="number" id="mixerTime" min="5" max="60">
+            <button class="stepper-btn" type="button" onclick="incrementValue('mixerTime',1,60)">+</button>
+          </div>
+          <small>5–60 seconds</small>
+        </div>
+
+        <div class="setting" style="grid-column:1/-1;">
+          <label>Audio</label>
+          <div class="audio-row">
+            <span class="icon" id="audioIcon">🔊</span>
+            <input type="range" id="volumeSlider" min="0" max="100" value="80">
+            <span id="volumeValue" style="font-weight:700;">80</span>
+            <div class="toggle" style="padding:8px 12px;">
+              <input type="checkbox" id="muteToggle">
+              <label for="muteToggle">Mute</label>
+            </div>
+          </div>
+          <small>Volume 0–100; Mute toggles audio on/off</small>
+        </div>
+      </div>
+
+      <button class="save-btn" type="button" onclick="saveSettings()">Save Settings</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  "use strict";
+
+  // Elements
+  const drinkRowC = document.getElementById("drinkRowC");
+
+  const brewBaseFieldC = document.getElementById("brewBaseFieldC");
+  const sizeFieldC = document.getElementById("sizeFieldC");
+  const sugarFieldC = document.getElementById("sugarFieldC");
+  const hotLiquidFieldC = document.getElementById("hotLiquidFieldC");
+  const milkFieldC = document.getElementById("milkFieldC");
+  const cleaningFieldsC = document.getElementById("cleaningFieldsC");
+
+  const brewBaseRowC = document.getElementById("brewBaseRowC");
+  const sizeRowC = document.getElementById("sizeRowC");
+  const sugarRowC = document.getElementById("sugarRowC");
+  const hotLiquidRowC = document.getElementById("hotLiquidRowC");
+  const milkRowC = document.getElementById("milkRowC");
+
+  const cleanMilkToggle = document.getElementById("cleanMilk");
+  const cleanWaterToggle = document.getElementById("cleanWater");
+
+  const summaryC = document.getElementById("summaryC");
+  const startBtn = document.getElementById("startC");
+  const stopBtn = document.getElementById("stopC");
+
+  const loaderC = document.getElementById("loaderC");
+  const loaderTextC = document.getElementById("loaderTextC");
+  const loaderSubC = document.getElementById("loaderSubC");
+
+  const statusLineC = document.getElementById("statusLineC");
+  const debugPayloadC = document.getElementById("debugPayloadC");
+  const debugStatusC = document.getElementById("debugStatusC");
+  const audioWarnC = document.getElementById("audioWarnC");
+
+  // Settings panel elements
+  const settingsBtn = document.getElementById("settingsBtn");
+  const settingsPanel = document.getElementById("settingsPanel");
+  const closeSettings = document.getElementById("closeSettings");
+
+  const volumeSlider = document.getElementById("volumeSlider");
+  const volumeValue = document.getElementById("volumeValue");
+  const muteToggle = document.getElementById("muteToggle");
+  const audioIcon = document.getElementById("audioIcon");
+
+  // Numeric settings inputs
+  const settingsInputs = {
+    tank1Time: document.getElementById("tank1Time"),
+    tank2Time: document.getElementById("tank2Time"),
+    tank3Time: document.getElementById("tank3Time"),
+    waterPumpTime: document.getElementById("waterPumpTime"),
+    milkPumpTime: document.getElementById("milkPumpTime"),
+    intHeaterTime: document.getElementById("intHeaterTime"),
+    intHeaterTemp: document.getElementById("intHeaterTemp"),
+    extHeaterTime: document.getElementById("extHeaterTime"),
+    extHeaterTemp: document.getElementById("extHeaterTemp"),
+    mixerTime: document.getElementById("mixerTime")
+  };
+
+  // Constants
+  const DEFAULTS = {
+    tank1Time: 2,
+    tank2Time: 3,
+    tank3Time: 3,
+    waterPumpTime: 5,
+    milkPumpTime: 4,
+    intHeaterTime: 30,
+    intHeaterTemp: 95,
+    extHeaterTime: 45,
+    extHeaterTemp: 90,
+    mixerTime: 10,
+    audioVolume: 80,
+    audioMuted: false
+  };
+
+  const LIMITS = {
+    tank1Time: [0, 30],
+    tank2Time: [0, 30],
+    tank3Time: [0, 30],
+    waterPumpTime: [0, 60],
+    milkPumpTime: [0, 60],
+    intHeaterTime: [10, 120],
+    intHeaterTemp: [60, 100],
+    extHeaterTime: [10, 180],
+    extHeaterTemp: [60, 100],
+    mixerTime: [5, 60],
+    audioVolume: [0, 100]
+  };
+
+  const POLL_FAST_MS = 450;
+  const POLL_SLOW_MS = 2500;
+
+  // UI state
+  let drinkC = null;
+  let brewBaseC = "Water";
+  let sizeC = "Single";
+  let sugarC = "Medium";
+  let milkRatioC = "none";
+  let hotLiquidC = "water";
+
+  // Runtime state
+  let pollTimer = null;
+  let pollEveryMs = 0;
+  let wasBusy = false;
+
+  // Helpers
+  function clampInt(v, min, max, fallback) {
+    const n = Number.parseInt(v, 10);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.min(max, Math.max(min, n));
+  }
+
+  function safeJsonPretty(obj) {
+    try { return JSON.stringify(obj, null, 2); } catch(e) { return String(obj); }
+  }
+
+  function showAudioWarn(msg) {
+    if (!audioWarnC) return;
+    audioWarnC.textContent = msg;
+    audioWarnC.style.display = "block";
+  }
+  function hideAudioWarn() {
+    if (!audioWarnC) return;
+    audioWarnC.textContent = "";
+    audioWarnC.style.display = "none";
+  }
+
+  function setLoader(active, title, sub) {
+    if (!loaderC) return;
+    loaderC.classList.toggle("active", !!active);
+    if (loaderTextC && typeof title === "string") loaderTextC.textContent = title;
+    if (loaderSubC && typeof sub === "string") loaderSubC.textContent = sub;
+  }
+
+  function modeLabel(mode) {
+    if (mode === "HotWater") return "Hot Water";
+    if (mode === "Nescafe") return "Nescafé";
+    if (mode === "Cleaning") return "Cleaning Cycle";
+    return mode || "";
+  }
+
+  function hotLiquidLabel(v) {
+    if (v === "water") return "Hot Water";
+    if (v === "milk_medium") return "Hot Milk (Medium)";
+    if (v === "milk_extra") return "Hot Milk (Extra)";
+    return v;
+  }
+
+  function milkRatioLabel(v) {
+    if (v === "none") return "No milk (100% water)";
+    if (v === "medium") return "25% milk";
+    if (v === "extra") return "50% milk";
+    return v;
+  }
+
+  async function apiGet(url) {
+    try {
+      const r = await fetch(url, { method: "GET", cache: "no-store" });
+      return await r.json();
+    } catch (e) {
+      return { ok: false, data: null, error: String(e && e.message ? e.message : e) };
+    }
+  }
+
+  async function apiPost(url, bodyObj) {
+    try {
+      const r = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(bodyObj || {})
+      });
+      return await r.json();
+    } catch (e) {
+      return { ok: false, data: null, error: String(e && e.message ? e.message : e) };
+    }
+  }
+
+  // Chip helpers
+  function setActiveChip(rowEl, value) {
+    if (!rowEl) return;
+    rowEl.querySelectorAll("button.chip-btn").forEach(btn => {
+      btn.classList.toggle("active", btn.getAttribute("data-value") === value);
+    });
+  }
+
+  function getActiveChipValue(rowEl, fallback) {
+    if (!rowEl) return fallback;
+    const active = rowEl.querySelector("button.chip-btn.active");
+    if (active) return active.getAttribute("data-value") || fallback;
+    const first = rowEl.querySelector("button.chip-btn");
+    return first ? (first.getAttribute("data-value") || fallback) : fallback;
+  }
+
+  function bindChipRow(rowEl, onChange) {
+    if (!rowEl) return;
+    rowEl.addEventListener("click", (e) => {
+      const btn = e.target.closest("button.chip-btn");
+      if (!btn) return;
+      const value = btn.getAttribute("data-value");
+      if (!value) return;
+      setActiveChip(rowEl, value);
+      if (typeof onChange === "function") onChange(value);
+      renderSummary();
+    });
+  }
+
+  // Field visibility
+  function showDrinkFields() {
+    if (!drinkC) return;
+
+    brewBaseFieldC.style.display = "none";
+    sizeFieldC.style.display = "none";
+    sugarFieldC.style.display = "none";
+    hotLiquidFieldC.style.display = "none";
+    milkFieldC.style.display = "none";
+    cleaningFieldsC.style.display = "none";
+
+    if (drinkC === "Coffee") {
+      brewBaseFieldC.style.display = "block";
+      sizeFieldC.style.display = "block";
+      sugarFieldC.style.display = "block";
+    } else if (drinkC === "HotWater") {
+      hotLiquidFieldC.style.display = "block";
+      sizeFieldC.style.display = "block";
+      sugarFieldC.style.display = "block";
+    } else if (drinkC === "Nescafe") {
+      milkFieldC.style.display = "block";
+      sizeFieldC.style.display = "block";
+      sugarFieldC.style.display = "block";
+    } else if (drinkC === "Cleaning") {
+      cleaningFieldsC.style.display = "block";
+    }
+  }
+
+  // Summary
+  function renderSummary(msgOverride) {
+    if (typeof msgOverride === "string") {
+      summaryC.textContent = msgOverride;
+      return;
+    }
+
+    if (!drinkC) {
+      summaryC.textContent = "Choose a drink to start.";
+      return;
+    }
+
+    let line = "Mode: " + modeLabel(drinkC);
+
+    if (drinkC === "Coffee") {
+      line += " | Base: " + brewBaseC + " | Size: " + sizeC + " | Sugar: " + sugarC;
+    } else if (drinkC === "HotWater") {
+      line += " | " + hotLiquidLabel(hotLiquidC) + " | Size: " + sizeC + " | Sugar: " + sugarC;
+    } else if (drinkC === "Nescafe") {
+      line += " | " + milkRatioLabel(milkRatioC) + " | Size: " + sizeC + " | Sugar: " + sugarC;
+    } else if (drinkC === "Cleaning") {
+      const cw = !!cleanWaterToggle.checked;
+      const cm = !!cleanMilkToggle.checked;
+      line += " | Water: " + (cw ? "ON" : "OFF") + " | Milk: " + (cm ? "ON" : "OFF");
+    }
+
+    summaryC.textContent = line;
+  }
+
+  // Settings persistence
+  function loadSettingsFromLocalStorage() {
+    const s = {};
+    Object.keys(DEFAULTS).forEach((k) => {
+      const raw = localStorage.getItem(k);
+      if (raw === null || raw === undefined) {
+        s[k] = DEFAULTS[k];
+        return;
+      }
+      if (k === "audioMuted") s[k] = (raw === "true");
+      else {
+        const minMax = LIMITS[k] || [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY];
+        s[k] = clampInt(raw, minMax[0], minMax[1], DEFAULTS[k]);
+      }
+    });
+    return s;
+  }
+
+  function storeSettingsToLocalStorage(s) {
+    Object.keys(DEFAULTS).forEach((k) => {
+      if (k === "audioMuted") localStorage.setItem(k, s[k] ? "true" : "false");
+      else localStorage.setItem(k, String(s[k]));
+    });
+  }
+
+  function applySettingsToUI(s) {
+    Object.keys(settingsInputs).forEach((k) => {
+      if (settingsInputs[k] && typeof s[k] !== "undefined") settingsInputs[k].value = String(s[k]);
+    });
+
+    volumeSlider.value = String(typeof s.audioVolume !== "undefined" ? s.audioVolume : DEFAULTS.audioVolume);
+    volumeValue.textContent = volumeSlider.value;
+    muteToggle.checked = !!(typeof s.audioMuted !== "undefined" ? s.audioMuted : DEFAULTS.audioMuted);
+    updateAudioIcon();
+  }
+
+  function readSettingsFromUI() {
+    const out = {};
+    Object.keys(settingsInputs).forEach((k) => {
+      const el = settingsInputs[k];
+      const [min, max] = LIMITS[k];
+      out[k] = clampInt(el ? el.value : DEFAULTS[k], min, max, DEFAULTS[k]);
+    });
+
+    out.audioVolume = clampInt(volumeSlider.value, 0, 100, DEFAULTS.audioVolume);
+    out.audioMuted = !!muteToggle.checked;
+
+    return out;
+  }
+
+  async function loadSettingsFromESP32() {
+    const res = await apiGet("/api/settings");
+    if (res && res.ok && res.data) {
+      const raw = res.data || {};
+      const s = { ...DEFAULTS };
+
+      Object.keys(DEFAULTS).forEach((k) => {
+        if (typeof raw[k] === "undefined") return;
+        if (k === "audioMuted") s[k] = !!raw[k];
+        else {
+          const [min, max] = LIMITS[k];
+          s[k] = clampInt(raw[k], min, max, DEFAULTS[k]);
+        }
+      });
+
+      applySettingsToUI(s);
+      storeSettingsToLocalStorage(s);
+      console.log("[API] Loaded settings from ESP32");
+      return true;
+    }
+    return false;
+  }
+
+  // Global (used by inline onclick)
+  async function saveSettings() {
+    const s = readSettingsFromUI();
+    console.log("[API] POST /api/settings:", s);
+
+    const res = await apiPost("/api/settings", s);
+    if (res && res.ok) {
+      storeSettingsToLocalStorage(s);
+      renderSummary("Settings saved.");
+      sendAudioUpdate(true);
+
+      const btn = document.querySelector(".save-btn");
+      if (btn) {
+        const old = btn.textContent;
+        btn.textContent = "Saved!";
+        setTimeout(() => (btn.textContent = old), 900);
+      }
+
+      settingsPanel.classList.remove("active");
+    } else {
+      const err = (res && res.error) ? res.error : "Unknown error";
+      renderSummary("Settings save failed: " + err);
+      alert("Settings save failed: " + err);
+    }
+  }
+
+  function incrementValue(id, step, max) {
+    const input = document.getElementById(id);
+    if (!input) return;
+    const cur = Number.parseInt(input.value || "0", 10);
+    const next = Number.isFinite(cur) ? cur + step : step;
+    input.value = String(Math.min(max, next));
+  }
+  function decrementValue(id, step, min) {
+    const input = document.getElementById(id);
+    if (!input) return;
+    const cur = Number.parseInt(input.value || "0", 10);
+    const next = Number.isFinite(cur) ? cur - step : 0;
+    input.value = String(Math.max(min, next));
+  }
+
+  window.saveSettings = saveSettings;
+  window.incrementValue = incrementValue;
+  window.decrementValue = decrementValue;
+
+  // Audio controls
+  function updateAudioIcon() {
+    audioIcon.textContent = muteToggle.checked ? "🔇" : "🔊";
+  }
+
+  let audioDebounce = null;
+  async function sendAudioUpdate(immediate) {
+    const vol = clampInt(volumeSlider.value, 0, 100, DEFAULTS.audioVolume);
+    const muted = !!muteToggle.checked;
+
+    localStorage.setItem("audioVolume", String(vol));
+    localStorage.setItem("audioMuted", muted ? "true" : "false");
+
+    const payload = { volume: vol, muted: muted };
+
+    const doSend = async () => {
+      console.log("[API] POST /api/audio:", payload);
+      const res = await apiPost("/api/audio", payload);
+      if (res && res.ok) hideAudioWarn();
+      else {
+        const err = (res && res.error) ? res.error : "Audio endpoint not available";
+        showAudioWarn("Audio control unavailable: " + err);
+      }
+    };
+
+    if (immediate) {
+      if (audioDebounce) clearTimeout(audioDebounce);
+      audioDebounce = null;
+      doSend();
+      return;
+    }
+
+    if (audioDebounce) clearTimeout(audioDebounce);
+    audioDebounce = setTimeout(doSend, 160);
+  }
+
+  volumeSlider.addEventListener("input", () => {
+    volumeValue.textContent = String(volumeSlider.value);
+    sendAudioUpdate(false);
+  });
+
+  muteToggle.addEventListener("change", () => {
+    updateAudioIcon();
+    sendAudioUpdate(true);
+  });
+
+  // Polling
+  function stopPolling() {
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = null;
+    pollEveryMs = 0;
+  }
+
+  function startPolling(ms) {
+    const nextMs = ms || POLL_FAST_MS;
+    if (pollTimer && pollEveryMs === nextMs) return;
+
+    stopPolling();
+    pollEveryMs = nextMs;
+
+    pollTimer = setInterval(pollOnce, pollEveryMs);
+    pollOnce();
+  }
+
+  function updateStatusLine(status) {
+    const state = status.state || "UNKNOWN";
+    const step = status.step || "";
+    const cup = (typeof status.cupPresent === "boolean") ? (status.cupPresent ? "YES" : "NO") : "?";
+    const temp = (typeof status.intTemp === "number") ? (status.intTemp.toFixed(1) + "°C") : "-";
+    const err = status.error ? (" | Error: " + status.error) : "";
+    statusLineC.textContent = "State: " + state + " | Step: " + step + " | Cup: " + cup + " | Temp: " + temp + err;
+  }
+
+  async function pollOnce() {
+    const res = await apiGet("/api/status");
+    if (!(res && res.ok && res.data)) return;
+
+    const st = res.data;
+
+    debugStatusC.textContent = safeJsonPretty(st);
+    updateStatusLine(st);
+
+    const busy = !!st.isBusy;
+    const err = st.error || null;
+
+    if (err) {
+      stopPolling();
+      setLoader(false, "", "");
+      stopBtn.disabled = true;
+      startBtn.disabled = false;
+      renderSummary("Error: " + err);
+      wasBusy = false;
+      return;
+    }
+
+    if (busy) {
+      wasBusy = true;
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+      setLoader(true, "Preparing your drink…", st.step || st.state || "Running…");
+      if (pollEveryMs !== POLL_FAST_MS) startPolling(POLL_FAST_MS);
+      return;
+    }
+
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+
+    if (wasBusy) {
+      wasBusy = false;
+      setLoader(false, "", "");
+      renderSummary(modeLabel(drinkC) ? (modeLabel(drinkC) + " completed.") : "Cycle completed.");
+      stopPolling();
+      return;
+    }
+
+    if (pollEveryMs !== POLL_SLOW_MS) startPolling(POLL_SLOW_MS);
+    setLoader(false, "", "");
+  }
+
+  // Payload build (exact schema)
+  async function getCupPresentPrecheck() {
+    const res = await apiGet("/api/status");
+    if (res && res.ok && res.data && typeof res.data.cupPresent === "boolean") return res.data.cupPresent;
+    return null;
+  }
+
+  function buildStartPayload() {
+    if (!drinkC) return null;
+
+    if (drinkC === "Coffee") {
+      return { mode: "Coffee", brewBase: brewBaseC, size: sizeC, sugar: sugarC };
+    }
+    if (drinkC === "HotWater") {
+      return { mode: "HotWater", hotLiquid: hotLiquidC, size: sizeC, sugar: sugarC };
+    }
+    if (drinkC === "Nescafe") {
+      return { mode: "Nescafe", milkRatio: milkRatioC, size: sizeC, sugar: sugarC };
+    }
+    if (drinkC === "Cleaning") {
+      const cleanMilk = !!cleanMilkToggle.checked;
+      const cleanWater = !!cleanWaterToggle.checked;
+      if (!cleanMilk && !cleanWater) {
+        renderSummary("Cleaning: enable at least one circuit (Water and/or Milk).");
+        return null;
+      }
+      return { mode: "Cleaning", cleanMilk: cleanMilk, cleanWater: cleanWater };
+    }
+
+    return null;
+  }
+
+  async function onStart() {
+    if (!drinkC) {
+      renderSummary("Please choose a drink first.");
+      return;
+    }
+
+    const payload = buildStartPayload();
+    if (!payload) return;
+
+    const cup = await getCupPresentPrecheck();
+    if (cup === false) {
+      renderSummary("NO_CUP: Please place a cup first.");
+      return;
+    }
+
+    debugPayloadC.textContent = safeJsonPretty(payload);
+
+    console.log("[API] POST /api/start:", payload);
+    const res = await apiPost("/api/start", payload);
+
+    if (res && res.ok) {
+      hideAudioWarn();
+      renderSummary("Order started: " + modeLabel(payload.mode));
+      setLoader(true, "Starting…", "Waiting for machine…");
+      wasBusy = true;
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+      startPolling(POLL_FAST_MS);
+      return;
+    }
+
+    const err = (res && res.error) ? res.error : "Unknown error";
+    renderSummary("Start failed: " + err);
+    alert("Start failed: " + err);
+  }
+
+  async function onStop() {
+    console.log("[API] POST /api/stop");
+    const res = await apiPost("/api/stop", {});
+    stopPolling();
+    setLoader(false, "", "");
+    wasBusy = false;
+
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+
+    if (res && res.ok) renderSummary("Stopped.");
+    else {
+      const err = (res && res.error) ? res.error : "Unknown error";
+      renderSummary("Stop request failed: " + err);
+    }
+
+    setTimeout(() => apiGet("/api/status").then(r => {
+      if (r && r.ok && r.data) {
+        debugStatusC.textContent = safeJsonPretty(r.data);
+        updateStatusLine(r.data);
+      }
+    }), 200);
+  }
+
+  // Bind events
+  drinkRowC.addEventListener("click", (e) => {
+    const item = e.target.closest(".drink-item");
+    if (!item) return;
+    const v = item.getAttribute("data-drink");
+    if (!v) return;
+    drinkC = v;
+
+    drinkRowC.querySelectorAll(".drink-item").forEach((el) => el.classList.toggle("active", el === item));
+    showDrinkFields();
+    renderSummary();
+  });
+
+  bindChipRow(brewBaseRowC, (v) => { brewBaseC = v; });
+  bindChipRow(sizeRowC, (v) => { sizeC = v; });
+  bindChipRow(sugarRowC, (v) => { sugarC = v; });
+  bindChipRow(milkRowC, (v) => { milkRatioC = v; });
+  bindChipRow(hotLiquidRowC, (v) => { hotLiquidC = v; });
+
+  cleanMilkToggle.addEventListener("change", renderSummary);
+  cleanWaterToggle.addEventListener("change", renderSummary);
+
+  startBtn.addEventListener("click", onStart);
+  stopBtn.addEventListener("click", onStop);
+
+  settingsBtn.addEventListener("click", () => settingsPanel.classList.add("active"));
+  closeSettings.addEventListener("click", () => settingsPanel.classList.remove("active"));
+  settingsPanel.addEventListener("click", (e) => {
+    if (e.target === settingsPanel) settingsPanel.classList.remove("active");
+  });
+
+  // Init
+  function initSelectionsFromDOM() {
+    const activeDrink = drinkRowC.querySelector(".drink-item.active");
+    drinkC = activeDrink ? activeDrink.getAttribute("data-drink") : null;
+
+    brewBaseC = getActiveChipValue(brewBaseRowC, brewBaseC);
+    sizeC = getActiveChipValue(sizeRowC, sizeC);
+    sugarC = getActiveChipValue(sugarRowC, sugarC);
+    milkRatioC = getActiveChipValue(milkRowC, milkRatioC);
+    hotLiquidC = getActiveChipValue(hotLiquidRowC, hotLiquidC);
+
+    if (!["none","medium","extra"].includes(milkRatioC)) {
+      milkRatioC = "none";
+      setActiveChip(milkRowC, milkRatioC);
+    }
+    if (!["water","milk_medium","milk_extra"].includes(hotLiquidC)) {
+      hotLiquidC = "water";
+      setActiveChip(hotLiquidRowC, hotLiquidC);
+    }
+  }
+
+  async function init() {
+    initSelectionsFromDOM();
+    showDrinkFields();
+    renderSummary();
+
+    const ok = await loadSettingsFromESP32();
+    if (!ok) {
+      const s = loadSettingsFromLocalStorage();
+      applySettingsToUI(s);
+      console.warn("[API] Using localStorage settings (/api/settings unavailable).");
+    }
+
+    startPolling(POLL_SLOW_MS);
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
+  else init();
+})();
+</script>
+
+</body>
+</html>
