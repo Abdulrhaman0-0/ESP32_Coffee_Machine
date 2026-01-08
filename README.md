@@ -1,5 +1,5 @@
 # ESP32 Coffee Machine (Arduino IDE) — README
-## No MCP23017 • 10 Relays Direct • ESP32 DevKit 38‑Pin (CP2102)
+## 10 Relays Direct • ESP32 DevKit 38‑Pin (CP2102)
 
 This project runs an **ESP32‑controlled coffee machine** with a **captive‑portal** web UI:
 - ESP32 creates a Wi‑Fi Access Point (AP)
