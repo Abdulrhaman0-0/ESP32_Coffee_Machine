@@ -76,6 +76,67 @@
 #include <FS.h>
 #include <LittleFS.h>
 
+// =======================
+//  DATA MODELS (MUST BE ABOVE HELPERS)
+// =======================
+
+struct Settings {
+  int tank1Time;      // sec
+  int tank2Time;      // sec
+  int tank3Time;      // sec
+  int waterPumpTime;  // sec
+  int milkPumpTime;   // sec
+  int intHeaterTime;  // sec (max heating window wall time)
+  int intHeaterTemp;  // C (target)
+  int extHeaterTime;  // sec (timer-only)
+  int extHeaterTemp;  // C (accepted but ignored)
+  int mixerTime;      // sec
+  int audioVolume;    // 0..100
+  bool audioMuted;    // bool
+};
+
+struct Order {
+  String mode;       // "Coffee" | "HotWater" | "Nescafe" | "Cleaning"
+  String brewBase;   // Coffee: "Water" | "Milk"
+  String size;       // "Single" | "Double"
+  String sugar;      // "Low" | "Medium" | "High"
+
+  // HotWater:
+  String hotLiquid;  // "water" | "milk_medium" | "milk_extra"
+
+  // Nescafe:
+  String milkRatio;  // "none" | "medium" | "extra"
+
+  // Cleaning:
+  bool cleanWater;
+  bool cleanMilk;
+};
+
+struct Status {
+  bool isBusy;
+  String state;
+  String step;
+  bool cupPresent;
+  float intTemp;   // NAN if not available
+  String error;    // "" means none
+};
+
+enum MachineState {
+  ST_IDLE,
+  ST_VALIDATE,
+  ST_SOLIDS,
+  ST_LIQUID,
+  ST_HEAT_INTERNAL_PREHEAT,
+  ST_HEAT_INTERNAL_ACTIVE,
+  ST_HEAT_EXTERNAL,
+  ST_MIX_DOWN,
+  ST_MIX_RUN,
+  ST_MIX_UP,
+  ST_DONE,
+  ST_ERROR,
+  ST_SAFE_STOP
+};
+
 // ============================================================
 // 0) USER CONFIG TOGGLES
 // ============================================================
